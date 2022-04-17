@@ -419,10 +419,15 @@ defmodule EventStore.Subscriptions.SubscriptionFsm do
     case read_stream_forward(data) do
       {:ok, []} ->
         if last_sent == last_received do
+          Logger.debug(fn -> describe(data) <> " catch_up_from_stream complete" end)
           # Subscriber is up-to-date with latest published events
           next_state(:subscribed, data)
         else
           # Need to catch-up with events published while catching up
+          Logger.debug(fn ->
+            describe(data) <> " catch_up_from_stream need to catch up with published events"
+          end)
+
           next_state(:request_catch_up, data)
         end
 
@@ -431,18 +436,25 @@ defmodule EventStore.Subscriptions.SubscriptionFsm do
 
         if empty_queue?(data) do
           # Request next batch of events
+          Logger.debug(fn -> describe(data) <> " catch_up_from_stream empty queue" end)
           next_state(:request_catch_up, data)
         else
           # Wait until subscribers have ack'd in-flight events
+          Logger.debug(fn ->
+            describe(data) <> " catch_up_from_stream waiting for subscriber acks "
+          end)
+
           next_state(:catching_up, data)
         end
 
       {:error, :stream_deleted} ->
         # Don't allow subscriptions to deleted streams to receive any events
+        Logger.debug(fn -> describe(data) <> " catch_up_from_stream stream_deleted" end)
         next_state(:unsubscribed, data)
 
       {:error, :stream_not_found} ->
         # Allow subscriptions to streams which don't yet exist, but might be created later
+        Logger.debug(fn -> describe(data) <> " catch_up_from_stream stream_not_found" end)
         next_state(:subscribed, data)
     end
   end
