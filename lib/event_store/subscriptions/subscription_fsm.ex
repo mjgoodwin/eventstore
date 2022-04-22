@@ -439,6 +439,12 @@ defmodule EventStore.Subscriptions.SubscriptionFsm do
         end
 
       {:ok, events} ->
+        event_numbers = Enum.map(events, & &1.event_number)
+
+        Logger.debug(fn ->
+          describe(data) <> " catch_up_from_stream read events #{inspect(event_numbers)}"
+        end)
+
         data = data |> enqueue_events(events) |> notify_subscribers()
 
         if empty_queue?(data) do
@@ -452,7 +458,8 @@ defmodule EventStore.Subscriptions.SubscriptionFsm do
           # Wait until subscribers have ack'd in-flight events
           Logger.debug(fn ->
             describe(data) <>
-              " catch_up_from_stream waiting for subscriber acks | " <> inspect(data)
+              " catch_up_from_stream waiting for #{data.queue_size} subscriber acks | " <>
+              inspect(data)
           end)
 
           next_state(:catching_up, data)
