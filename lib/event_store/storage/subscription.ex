@@ -25,6 +25,10 @@ defmodule EventStore.Storage.Subscription do
   def subscribe_to_stream(conn, stream_uuid, subscription_name, start_from, opts) do
     with {:ok, %Subscription{} = subscription} <-
            Subscription.Query.execute(conn, stream_uuid, subscription_name, opts) do
+      Logger.debug(fn ->
+        "#{subscription_name} subscribe_to_stream #{inspect(subscription)}"
+      end)
+
       {:ok, subscription}
     else
       {:error, :subscription_not_found} ->
@@ -36,6 +40,10 @@ defmodule EventStore.Storage.Subscription do
   end
 
   def ack_last_seen_event(conn, stream_uuid, subscription_name, last_seen, opts) do
+    Logger.debug(fn ->
+      "#{subscription_name} ack_last_seen_event #{last_seen}"
+    end)
+
     Subscription.Ack.execute(conn, stream_uuid, subscription_name, last_seen, opts)
   end
 
