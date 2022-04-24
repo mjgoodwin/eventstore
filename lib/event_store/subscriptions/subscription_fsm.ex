@@ -113,13 +113,26 @@ defmodule EventStore.Subscriptions.SubscriptionFsm do
   defstate catching_up do
     defevent ack(ack, subscriber), data: %SubscriptionState{} = data do
       with {:ok, data} <- ack_events(data, ack, subscriber) do
+        Logger.debug(fn ->
+          describe(data) <> " catching_up more work #{data.queue_size} | " <> inspect(data)
+        end)
+
         catch_up_from_stream(data)
       else
-        reply -> respond(reply)
+        reply ->
+          Logger.debug(fn ->
+            describe(data) <> " catching_up reply #{data.queue_size} | " <> inspect(data)
+          end)
+
+          respond(reply)
       end
     end
 
     defevent checkpoint(), data: %SubscriptionState{} = data do
+      Logger.debug(fn ->
+        describe(data) <> " catching_up checkpoint #{data.queue_size} | " <> inspect(data)
+      end)
+
       next_state(:subscribed, persist_checkpoint(data))
     end
   end
